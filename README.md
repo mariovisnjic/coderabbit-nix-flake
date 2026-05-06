@@ -5,6 +5,16 @@ Nix flake for the [CodeRabbit CLI](https://www.coderabbit.ai/cli).
 Wraps the prebuilt `coderabbit` binary from `cli.coderabbit.ai/releases` and
 patches the ELF interpreter so it runs on NixOS.
 
+> This flake is not affiliated with CodeRabbit. The CLI is proprietary;
+> running it constitutes acceptance of [CodeRabbit's Terms of Service](https://www.coderabbit.ai/terms-of-service).
+
+> **Heads up:** the flake is pinned to a specific upstream version. When
+> CodeRabbit ships a new release, the pinned version may stop working
+> (e.g. if the old zip is removed from their CDN). A daily CI job opens a
+> PR with the new version + hashes, usually merged within a day — once
+> merged, run `nix flake update coderabbit` in your own flake to pick it
+> up.
+
 ## Try it
 
 ```sh
