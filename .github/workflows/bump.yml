@@ -1,0 +1,101 @@
+name: Bump CodeRabbit version
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Discover latest version
+        id: latest
+        run: |
+          set -euo pipefail
+          latest=$(curl -fsSL https://cli.coderabbit.ai/releases/latest/VERSION | tr -d '[:space:]')
+          current=$(grep -oP 'version = "\K[^"]+' flake.nix)
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          if [ "$latest" = "$current" ]; then
+            echo "up-to-date=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "up-to-date=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "current=$current latest=$latest"
+
+      - name: Compute hashes for all platforms
+        if: steps.latest.outputs.up-to-date == 'false'
+        id: hashes
+        run: |
+          set -euo pipefail
+          version="${{ steps.latest.outputs.latest }}"
+          base="https://cli.coderabbit.ai/releases/${version}"
+          tmp=$(mktemp -d)
+          for plat in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
+            curl -fsSL "${base}/coderabbit-${plat}.zip" -o "${tmp}/${plat}.zip"
+            hash=$(nix hash file --type sha256 --sri "${tmp}/${plat}.zip")
+            echo "${plat}=${hash}" >> "$GITHUB_OUTPUT"
+            echo "${plat}: ${hash}"
+          done
+
+      - name: Patch flake.nix
+        if: steps.latest.outputs.up-to-date == 'false'
+        env:
+          NEW_VERSION: ${{ steps.latest.outputs.latest }}
+          H_LINUX_X64: ${{ steps.hashes.outputs.linux-x64 }}
+          H_LINUX_ARM64: ${{ steps.hashes.outputs.linux-arm64 }}
+          H_DARWIN_X64: ${{ steps.hashes.outputs.darwin-x64 }}
+          H_DARWIN_ARM64: ${{ steps.hashes.outputs.darwin-arm64 }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os, re
+          path = "flake.nix"
+          src = open(path).read()
+          src = re.sub(r'version = "[^"]+";', f'version = "{os.environ["NEW_VERSION"]}";', src, count=1)
+          mapping = {
+              "linux-x64":    os.environ["H_LINUX_X64"],
+              "linux-arm64":  os.environ["H_LINUX_ARM64"],
+              "darwin-x64":   os.environ["H_DARWIN_X64"],
+              "darwin-arm64": os.environ["H_DARWIN_ARM64"],
+          }
+          for plat, h in mapping.items():
+              pattern = rf'(platform = "{re.escape(plat)}";\s*\n\s*hash = )"[^"]+"'
+              new, n = re.subn(pattern, lambda m, h=h: f'{m.group(1)}"{h}"', src)
+              if n != 1:
+                  raise SystemExit(f"failed to patch hash for {plat} (matches={n})")
+              src = new
+          open(path, "w").write(src)
+          PY
+          echo "--- diff ---"
+          git --no-pager diff flake.nix
+
+      - name: Verify build still evaluates
+        if: steps.latest.outputs.up-to-date == 'false'
+        run: nix build --no-link --print-out-paths .#coderabbit
+
+      - name: Open pull request
+        if: steps.latest.outputs.up-to-date == 'false'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: bump/coderabbit-${{ steps.latest.outputs.latest }}
+          commit-message: "Bump CodeRabbit to ${{ steps.latest.outputs.latest }}"
+          title: "Bump CodeRabbit to ${{ steps.latest.outputs.latest }}"
+          body: |
+            Automated bump from `${{ steps.latest.outputs.current }}` to `${{ steps.latest.outputs.latest }}`.
+
+            Source: https://cli.coderabbit.ai/releases/latest/VERSION
+
+            Hashes recomputed for all four platforms and `nix build` verified before opening this PR.
+          delete-branch: true
