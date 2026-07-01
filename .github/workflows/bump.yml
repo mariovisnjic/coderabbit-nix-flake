@@ -92,6 +92,8 @@ jobs:
           branch: bump/coderabbit-${{ steps.latest.outputs.latest }}
           commit-message: "Bump CodeRabbit to ${{ steps.latest.outputs.latest }}"
           title: "Bump CodeRabbit to ${{ steps.latest.outputs.latest }}"
+          assignees: mariovisnjic
+          reviewers: mariovisnjic
           body: |
             Automated bump from `${{ steps.latest.outputs.current }}` to `${{ steps.latest.outputs.latest }}`.
 
