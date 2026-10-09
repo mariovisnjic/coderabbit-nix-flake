@@ -14,24 +14,24 @@
           config.allowUnfree = true;
         };
 
-        version = "0.8.2";
+        version = "0.9.0";
 
         sources = {
           "x86_64-linux" = {
             platform = "linux-x64";
-            hash = "sha256-pjREhRU8WInJG65x2RcsDS19OSSkVmEXMDDihXC7e7I=";
+            hash = "sha256-VuTJnenREQbD5r8xA0hk2490bLl8nq+UcK3PpkYdpm8=";
           };
           "aarch64-linux" = {
             platform = "linux-arm64";
-            hash = "sha256-OwhxfUDVH9LYhKTvDZfz4BcmzKcWNlOzhAUxOtOY3I8=";
+            hash = "sha256-rY9wB0KYG+uHWRYNu9eGGDrz12yX0VlePWQJnk8TySQ=";
           };
           "x86_64-darwin" = {
             platform = "darwin-x64";
-            hash = "sha256-wAmCEIsPgW3wy5bEJ8G5nVkWHNkVDFd0ndHyC0GNHQg=";
+            hash = "sha256-ZP3IRmspAPmP3y31FaXzvLrg9E1DDPtr7IF2ovBwh7s=";
           };
           "aarch64-darwin" = {
             platform = "darwin-arm64";
-            hash = "sha256-YJHQMWS0cZC027IN6XMS95veA/w1tLfCcF+PTTuoBn4=";
+            hash = "sha256-9fIPtzGKyZtv/fMGq+PIK4DtI4IRblAWNgWlabWVg98=";
           };
         };
 
